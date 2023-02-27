@@ -151,12 +151,12 @@ def parse_sample(sample, measurements_count_by_sample, time_feature):
     return features
 def import_dataset(dataset_path, imported_dataset, filter_samples):
     dataset = imported_dataset if imported_dataset is not None else load(dataset_path)
-    if filter_samples is "NO":
+    if filter_samples == "NO":
         return dataset
-    elif filter_samples is "MANEUVER_ONLY":
+    elif filter_samples == "MANEUVER_ONLY":
         maneuver_keys_index = [True if is_maneuver(dataset[key]) else False for key in dataset[KEY_IDENTIFIER]]
         dataset[KEY_IDENTIFIER] = list(np.array(dataset[KEY_IDENTIFIER])[maneuver_keys_index])
-    elif filter_samples is "WITHOUT_MANEUVER_ONLY":
+    elif filter_samples == "WITHOUT_MANEUVER_ONLY":
         without_maneuver_keys_index = [True if not is_maneuver(dataset[key]) else False for key in
                                        dataset[KEY_IDENTIFIER]]
         dataset[KEY_IDENTIFIER] = list(np.array(dataset[KEY_IDENTIFIER])[without_maneuver_keys_index])
