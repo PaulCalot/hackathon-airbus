@@ -84,6 +84,43 @@ class ManeuverDetectionDataset(Dataset):
             maneuver_info = get_maneuver_info(sample)
             return features, is_maneuver(sample), maneuver_info[DELTA_V_KEY], maneuver_info[MANEUVER_TIME_KEY]
 
+class IrregularDataset(Dataset):
+    def __init__(self, dataset):
+        super().__init__()
+        self.dataset, self.length = self.prepare_data(dataset)
+
+    def __getitem__(self, idx):
+        x, y = self.dataset[idx]
+        return x, y # returning only the sample
+    
+    def prepare_data(self, dataset):
+        new_data = []
+        for i in range(len(dataset)):
+                feature, is_maneuver, dv, time  = dataset[i]
+                if(not is_maneuver):
+                    dv = 0.
+                    time = 0.
+                feature = torch.tensor(feature).t().float()
+                feature[2, :] = feature[2, :]/OBSERVATION_TIME_SPAN # normalizing time span
+                new_data.append((feature, (is_maneuver, dv, time/OBSERVATION_TIME_SPAN)))
+        return new_data, len(new_data)
+    
+    def __len__(self):
+        return self.length
+    
+
+class SlidingWindowDataset(Dataset):
+    def __init__(self, dataset, window_size=50, drop_last=True):
+        super().__init__()
+        self.window_size = window_size
+        self.dataset, self.window_to_sample, self.length = split_dataset_in_window(dataset, window_size=window_size, drop_last=drop_last)
+
+    def __getitem__(self, idx):
+        sample = self.dataset[idx]
+        return sample[0].t(), (sample[1], sample[2]) # channel x time series length 
+    
+    def __len__(self):
+        return self.length
 
 def compute_length(dataset_type, validation_size_ratio, total_dataset_length, max_size):
     length = total_dataset_length if max_size is None else min(max_size, total_dataset_length)
@@ -149,6 +186,7 @@ def parse_sample(sample, measurements_count_by_sample, time_feature):
         duration = get_duration(sample)
         features[:len(duration), 2] = duration
     return features
+
 def import_dataset(dataset_path, imported_dataset, filter_samples):
     dataset = imported_dataset if imported_dataset is not None else load(dataset_path)
     if filter_samples == "NO":
@@ -161,3 +199,49 @@ def import_dataset(dataset_path, imported_dataset, filter_samples):
                                        dataset[KEY_IDENTIFIER]]
         dataset[KEY_IDENTIFIER] = list(np.array(dataset[KEY_IDENTIFIER])[without_maneuver_keys_index])
     return dataset
+
+
+
+def get_maneuver_data_point_indexes(times, time):
+    left_index = 0
+    right_index = len(times) - 1
+    while(left_index != right_index - 1):
+        m = (left_index + right_index)//2
+        if(times[m] > time):
+            right_index = m
+        elif(times[m] < time):
+            left_index = m
+        else:
+            return (m, m)
+    return left_index, right_index
+
+def split_dataset_in_window(dataset, window_size, drop_last=False):
+    new_data = []
+    window_to_sample = []
+    for i, (feature, is_maneuver, dv, time) in enumerate(dataset):
+        length = feature.shape[0]
+        pad_size = length % window_size
+        feature = torch.nn.functional.pad(torch.tensor(feature).t().float(), pad=(0, pad_size), mode='constant', value=0.).t() # padding last dimension, to the right
+        # https://pytorch.org/docs/stable/generated/torch.split.html
+        splits_tupl = torch.split(feature, window_size, dim=0)
+        nb_splits = len(splits_tupl)
+    
+        if(drop_last and pad_size > 0):
+            nb_splits -= 1
+    
+        if(is_maneuver):
+            times = feature[:, 2]
+            left_index, right_index = get_maneuver_data_point_indexes(times, time)
+            left_index_window = left_index // window_size
+            right_index_window = right_index // window_size
+        
+        for k in range(nb_splits):
+            if(is_maneuver and (k==left_index_window or k==right_index_window)):
+                c_ = 1
+                dv_ = dv
+            else:
+                c_ = 0
+                dv_ = 0.    
+            new_data.append((splits_tupl[k][:, :2], c_, dv_)) # removing time - it is useless now
+            window_to_sample.append(i)
+    return new_data, window_to_sample, len(new_data)
