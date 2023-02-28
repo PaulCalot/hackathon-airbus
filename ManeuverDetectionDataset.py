@@ -96,13 +96,16 @@ class IrregularDataset(Dataset):
     def prepare_data(self, dataset):
         new_data = []
         for i in range(len(dataset)):
-                feature, is_maneuver, dv, time  = dataset[i]
-                if(not is_maneuver):
-                    dv = 0.
-                    time = 0.
-                feature = torch.tensor(feature).t().float()
-                feature[2, :] = feature[2, :]/OBSERVATION_TIME_SPAN # normalizing time span
-                new_data.append((feature, (is_maneuver, dv, time/OBSERVATION_TIME_SPAN)))
+            feature, is_maneuver, dv, time  = dataset[i]
+            if(not is_maneuver):
+                dv = 0.
+                time = 0.
+            feature = torch.tensor(feature).t().float()
+
+            # feature[2, 1:] = feature[2, :-1] - feature[2, 1:]
+            # feature[2, 0] = 0.
+            feature[2, :] = feature[2, :]/OBSERVATION_TIME_SPAN # 800. # normalizing time span - 800. secondes to normalize
+            new_data.append((feature, (is_maneuver, dv, time/OBSERVATION_TIME_SPAN)))
         return new_data, len(new_data)
     
     def __len__(self):
