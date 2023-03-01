@@ -55,7 +55,7 @@ class TCNModel(torch.nn.Module):
         # self.output_layer = torch.nn.Softmax(dim=-1)
   
     def forward(self, x):
-        x = torch.transpose(x, 1, 2)
+        # x = torch.transpose(x, 1, 2)
         embedding = self.tcn(x)[:, :, -1]
         x =  torch.squeeze(self.decoder(self.dropout(embedding)))
         return x, embedding
