@@ -85,9 +85,10 @@ class ManeuverDetectionDataset(Dataset):
             return features, is_maneuver(sample), maneuver_info[DELTA_V_KEY], maneuver_info[MANEUVER_TIME_KEY]
 
 class IrregularDataset(Dataset):
-    def __init__(self, datasets):
+    def __init__(self, datasets, index_to_ignore=None):
         super().__init__()
         self.dataset, self.length = self.prepare_data(datasets)
+        self.index_to_ignore = index_to_ignore
 
     def __getitem__(self, idx):
         x, y = self.dataset[idx]
@@ -95,18 +96,19 @@ class IrregularDataset(Dataset):
     
     def prepare_data(self, datasets):
         new_data = []
-        for dataset in datasets:
+        for dataset, indexes in zip(datasets, self.index_to_ignore):
             for i in range(len(dataset)):
-                feature, is_maneuver, dv, time  = dataset[i]
-                if(not is_maneuver):
-                    dv = 0.
-                    time = 0.
-                feature = torch.tensor(feature).t().float()
+                if(indexes[i] == 0):
+                    feature, is_maneuver, dv, time  = dataset[i]
+                    if(not is_maneuver):
+                        dv = 0.
+                        time = 0.
+                    feature = torch.tensor(feature).t().float()
 
-                # feature[2, 1:] = feature[2, :-1] - feature[2, 1:]
-                # feature[2, 0] = 0.
-                feature[2, :] = feature[2, :]/OBSERVATION_TIME_SPAN # 800. # normalizing time span - 800. secondes to normalize
-                new_data.append((feature, (is_maneuver, dv, time/OBSERVATION_TIME_SPAN)))
+                    # feature[2, 1:] = feature[2, :-1] - feature[2, 1:]
+                    # feature[2, 0] = 0.
+                    feature[2, :] = feature[2, :]/OBSERVATION_TIME_SPAN # 800. # normalizing time span - 800. secondes to normalize
+                    new_data.append((feature, (is_maneuver, dv, time/OBSERVATION_TIME_SPAN)))
         return new_data, len(new_data)
     
     def __len__(self):
