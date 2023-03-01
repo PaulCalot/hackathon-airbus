@@ -23,7 +23,7 @@ class ConvBlock1d(torch.nn.Module):
         return x
 
 class Cnn1d(torch.nn.Module):
-    def __init__(self, block_kwargs_list, linear_kwargs) -> None: # use_dv_head=False, use_date_head=False
+    def __init__(self, block_kwargs_list, linear_kwargs, output_size=1) -> None: # use_dv_head=False, use_date_head=False
         super().__init__()
         self.block_kwargs_list = block_kwargs_list
         ll = []
@@ -36,7 +36,7 @@ class Cnn1d(torch.nn.Module):
         self.activation_fn = torch.nn.ReLU()
 
         self.classification_head = torch.nn.Sequential(*[
-            torch.nn.Linear(linear_kwargs['out_features'], 1),
+            torch.nn.Linear(linear_kwargs['out_features'], output_size),
             # torch.nn.Softmax(dim=-1)
         ])
         
