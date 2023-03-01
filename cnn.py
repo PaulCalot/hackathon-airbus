@@ -1,9 +1,5 @@
 import torch
 import numpy as np
-from sklearn import metrics
-
-from ManeuverDetectionDataset import ManeuverDetectionDataset, IrregularDataset, SlidingWindowDataset
-from torch.utils.data import DataLoader
 
 def get_l_out(l_in, kernel_size, padding=0, dilation=1, stride=1):
     return np.floor((l_in + 2 * padding - dilation * (kernel_size - 1) -1)/stride + 1)
@@ -47,9 +43,9 @@ class Cnn1d(torch.nn.Module):
     def forward(self, x):
         # main model
         x = self.convnet(x)
-        embedding = torch.flatten(x, start_dim=1) # size : batch size x length
-        x = self.fcnn(embedding)
-        x = self.activation_fn(x)
+        x = torch.flatten(x, start_dim=1) # size : batch size x length
+        x = self.fcnn(x)
+        embedding = self.activation_fn(x)
 
         # classification head
         c = self.classification_head(x)
