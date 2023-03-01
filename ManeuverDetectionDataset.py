@@ -112,6 +112,28 @@ class IrregularDataset(Dataset):
     def __len__(self):
         return self.length
     
+class IrregularDatasetInterpolated(Dataset):
+    def __init__(self, x_scaled, y_scaled, x_scalers, y_scalers):
+        super().__init__()
+        self.x = x_scaled
+        self.y = y_scaled
+        self.x_scalers = x_scalers
+        self.y_scalers = y_scalers
+        self.length = len(x_scaled)
+        
+    def __getitem__(self, idx):
+        return self.x[idx], self.y[idx]
+        
+    def __len__(self):
+        return self.length
+    
+    def get_scaled_data(self):
+        return self.x, self.y
+
+    def get_unscaled_data(self):
+        pass
+
+    
 
 class SlidingWindowDataset(Dataset):
     def __init__(self, dataset, window_size=50, drop_last=True):

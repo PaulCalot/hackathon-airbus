@@ -46,14 +46,16 @@ class TemporalConvNet(torch.nn.Module):
         return self.network(x)
 
 class TCNModel(torch.nn.Module):
-    def __init__(self, num_channels, kernel_size=2, dropout=0.2):
+    def __init__(self, num_inputs, num_channels, kernel_size=2, dropout=0.2):
         super(TCNModel, self).__init__()
         self.tcn = TemporalConvNet(
-            1000, num_channels, kernel_size=kernel_size, dropout=dropout)
+            num_inputs, num_channels, kernel_size=kernel_size, dropout=dropout)
         self.dropout = torch.nn.Dropout(dropout)
         self.decoder = torch.nn.Linear(num_channels[-1], 1)
-
+        # self.output_layer = torch.nn.Softmax(dim=-1)
+  
     def forward(self, x):
         x = torch.transpose(x, 1, 2)
         embedding = self.tcn(x)[:, :, -1]
-        return torch.squeeze(self.decoder(self.dropout(embedding))), embedding
+        x =  torch.squeeze(self.decoder(self.dropout(embedding)))
+        return x, embedding
