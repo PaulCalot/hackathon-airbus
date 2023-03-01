@@ -9,9 +9,11 @@ class TorchTrainer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = self.model.to(self.device)
         if(loss_function == 'CrossEntropyLoss'): # DO NOT USE IT
-            self.loss_function = torch.nn.CrossEntropyLoss(weight=self.weight) # torch.tensor([0.05, 0.95]))
+            loss_function = torch.nn.CrossEntropyLoss(weight=self.weight) # torch.tensor([0.05, 0.95]))
+            self.loss_function = lambda pred, target: loss_function(pred, target.to(torch.float))
         elif(loss_function == "L1Loss"):
             self.loss_function = torch.nn.L1Loss()
+
         elif(loss_function == 'BCELoss'):
             loss_function =  torch.nn.BCEWithLogitsLoss(weight=self.weight)
             self.loss_function = lambda pred, target: loss_function(pred, target.to(torch.float))
